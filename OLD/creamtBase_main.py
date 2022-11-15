@@ -5,10 +5,9 @@
 #python libraries
 import os, time, requests, calendar
 #CreamT libraries
-import deviceInfo, rmsApiReq, manageConnection, manageData, googleAPI
+import deviceInfo, rmsApiReq, manageConnection, manageData
 
 basepath = 'K:\\'
-#basepath = '/home/mark'
 
 #connection information
 port = 8080
@@ -31,24 +30,23 @@ class Devices:
 #create device instance and assign device ID's.  Mark Symons - these are assigned for each rut - use rmsGetDeviceInfo.py to find ID number.
 # Note DWL and PNZ will need to change due to bad open collectors on these Ruts
 
-#s1 = Devices() #do this for every new device added
-#s1.ID = 273746
-#s1.location = 'DWL'
+s1 = Devices() #do this for every new device added
+s1.ID = 273746
+s1.location = 'DWL'
 
 s2 = Devices()
-s2.ID = 214262
-s2.location = 'TOR'  
+s2.ID = 354389
+s2.location = 'PNZ'
 
 s3 = Devices()
 s3.ID = 530346
 s3.location = 'HGI'
 
-dev = [s3,s2]
+dev = [s1, s2, s3]
 
 #start loop timer
 starttime = time.time()
 dltime = calendar.timegm(time.strptime(time.strftime('%d/%m/%y'),'%d/%m/%y'))
-#print(dltime)
 dlflag = True
 
 while(1):
@@ -85,16 +83,14 @@ while(1):
             if s.isOnlineRUT:
                 s.isOnlineRUT = False
             s.rutAttempt += 1
-            if s.rutAttempt >= 3:
-                print('sending mail')
-                googleAPI.rut_mail(s.ID, s.isOnlineRUT, s.location, s.IP)
+            if s.rutAttempt >= 10:
+                manageConnection.rut_mail(s.ID, s.isOnlineRUT, s.location)
                 s.rutAttempt = 0
             continue
         else:
             if not s.isOnlineRUT:
-                s.IP = rmsApiReq.get_mobile_ip(s.ID)
                 s.isOnlineRUT = True
-                googleAPI.rut_mail(s.ID, s.isOnlineRUT, s.location, s.IP)
+                manageConnection.rut_mail(s.ID, s.isOnlineRUT, s.location)
             s.IP = rmsApiReq.get_mobile_ip(s.ID)
 
 
@@ -115,7 +111,7 @@ while(1):
                 s.devAttempt = -1
                 print('resetting controller')
                 print(s.IP)
-                googleAPI.dev_mail(s.ID, s.isOnlineDEV, s.location, s.IP)
+                #manageConnection.dev_mail(s.ID, s.isOnlineDEV, s.location)
                 try:
                     requests.get('http://' + s.IP + '/cgi-bin/output?username=CREAMT_DO&password=Coastal88&action=on&pin=4pin&time=2')
                 except requests.exceptions.RequestException as err:
@@ -126,7 +122,7 @@ while(1):
             if not s.isOnlineDEV:
                 if s.devAttempt < 0:
                     s.isOnlineDEV = True
-                    googleAPI.dev_mail(s.ID, s.isOnlineDEV, s.location, s.IP)
+                    #manageConnection.dev_mail(s.ID, s.isOnlineDEV, s.location)
                 s.devAttempt = 0
         
         #get current device values 
@@ -156,6 +152,5 @@ while(1):
         #print('Site\tRut Status\tMobile IP\t\tDevice Time\t\tLast Tide\t\tNext Tide [UTC]\t\tTime to Next Tide [s]')
         print('[{} | {} | {} | {} | {} | {} | {}]'.format(s.location,s.isOnlineRUT,s.IP,s.time,s.tideLast,s.tideNext,s.diff))
 
-    #time.sleep(5)   
-    time.sleep(600 - time.time() % 600)
-    #time.sleep(600)
+    time.sleep(5)   
+    #time.sleep(600 - time.time() % 600)
